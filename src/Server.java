@@ -1,61 +1,74 @@
+import java.io.Serializable;
+import java.net.MalformedURLException;
+import java.rmi.AlreadyBoundException;
 import java.rmi.Naming;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.HashMap;
+import java.util.Map;
 
-import parkingAsyn.Parking;
+public class Server extends UnicastRemoteObject implements Server_itf, Serializable {
 
-public class Server implements Server_itf {
+	private static final long serialVersionUID = 2L;
 
-	private static final String nameServerUrl = "";
-	private int currentId;
+	private int incrementId;
+	private Map<Integer, ServerObject> objs;
+	private Map<String, Integer> objsNames;
 
-	public Server() {
+	public static void main(String[] args) throws RemoteException, MalformedURLException,
+			AlreadyBoundException {
 
-		this.currentId = 0;
+		// RMI
+		LocateRegistry.createRegistry(3535);
+		Naming.bind("rmi://localhost:3535/ReplicateServer", new Server());
+	}
+
+	public Server() throws RemoteException, MalformedURLException, AlreadyBoundException {
+
+		this.incrementId = 0;
+		this.objs = new HashMap<Integer, ServerObject>();
+		this.objsNames = new HashMap<String, Integer>();
 	}
 
 	@Override
 	public int lookup(String name) throws RemoteException {
-
-		try {
-			Integer unParking = (Integer) Naming.lookup("rmi://" + nameServerUrl + "/" + name);
-		} 
-		catch(NotBoundException e) { 
-			
+		
+		int objId = 0;
+		
+		if(this.objsNames.get(name) != null)
+		{
+			objId = this.objsNames.get(name);
 		}
-		
 
-		
-		return 0;
+		return objId;
 	}
 
 	@Override
 	public void register(String name, int id) throws RemoteException {
 
-		// TODO Auto-generated method stub
-
+		this.objsNames.put(name, id);
 	}
 
 	@Override
 	public int create(Object o) throws RemoteException {
 
-		
-		this.currentId++;
-		return this.currentId;
+		this.incrementId++;
+		this.objs.put(this.incrementId, new ServerObject(this.incrementId, o));
+
+		return this.incrementId;
 	}
 
 	@Override
 	public Object lock_read(int id, Client_itf client) throws RemoteException {
 
-		// TODO Auto-generated method stub
-		return null;
+		return this.objs.get(new Integer(id)).lock_read(client);
 	}
 
 	@Override
 	public Object lock_write(int id, Client_itf client) throws RemoteException {
 
-		// TODO Auto-generated method stub
-		return null;
+		return this.objs.get(new Integer(id)).lock_write(client);
 	}
 
 }

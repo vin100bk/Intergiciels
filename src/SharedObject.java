@@ -1,6 +1,6 @@
 import java.io.*;
 
-enum Lock
+enum SharedObjectLock
 {
 	NL, RLC, WLC, RLT, WLT, RLT_WLC
 };
@@ -11,13 +11,13 @@ public class SharedObject implements Serializable, SharedObject_itf {
 
 	public Object obj;
 	private int id;
-	private Lock lock;
+	private SharedObjectLock lock;
 
 	public SharedObject(int id, Object obj) {
 
 		this.id = id;
 		this.obj = obj;
-		this.lock = Lock.NL;
+		this.lock = SharedObjectLock.NL;
 	}
 
 	// invoked by the user program on the client node
@@ -35,26 +35,26 @@ public class SharedObject implements Serializable, SharedObject_itf {
 	// invoked by the user program on the client node
 	public synchronized void unlock() {
 
-		if (this.lock == Lock.RLT)
+		if (this.lock == SharedObjectLock.RLT)
 		{
-			this.lock = Lock.RLC;
+			this.lock = SharedObjectLock.RLC;
 		}
-		else if (this.lock == Lock.WLT || this.lock == Lock.RLT_WLC)
+		else if (this.lock == SharedObjectLock.WLT || this.lock == SharedObjectLock.RLT_WLC)
 		{
-			this.lock = Lock.WLC;
+			this.lock = SharedObjectLock.WLC;
 		}
 	}
 
 	// callback invoked remotely by the server
 	public synchronized Object reduce_lock() {
 
-		if (this.lock == Lock.WLT || this.lock == Lock.WLC)
+		if (this.lock == SharedObjectLock.WLT || this.lock == SharedObjectLock.WLC)
 		{
-			this.lock = Lock.RLC;
+			this.lock = SharedObjectLock.RLC;
 		}
-		else if (this.lock == Lock.RLT_WLC)
+		else if (this.lock == SharedObjectLock.RLT_WLC)
 		{
-			this.lock = Lock.RLT;
+			this.lock = SharedObjectLock.RLT;
 		}
 
 		return this.obj;
@@ -63,17 +63,17 @@ public class SharedObject implements Serializable, SharedObject_itf {
 	// callback invoked remotely by the server
 	public synchronized void invalidate_reader() {
 
-		if (this.lock == Lock.RLT || this.lock == Lock.RLC)
+		if (this.lock == SharedObjectLock.RLT || this.lock == SharedObjectLock.RLC)
 		{
-			this.lock = Lock.NL;
+			this.lock = SharedObjectLock.NL;
 		}
 	}
 
 	public synchronized Object invalidate_writer() {
 
-		if (this.lock == Lock.WLT || this.lock == Lock.WLC || this.lock == Lock.RLT_WLC)
+		if (this.lock == SharedObjectLock.WLT || this.lock == SharedObjectLock.WLC || this.lock == SharedObjectLock.RLT_WLC)
 		{
-			this.lock = Lock.NL;
+			this.lock = SharedObjectLock.NL;
 		}
 
 		return this.obj;
