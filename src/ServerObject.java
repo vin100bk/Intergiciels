@@ -1,8 +1,10 @@
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
-enum ServerObjectLock
+enum ServerObjectState
 {
 	NL, RLT, WLT
 };
@@ -13,7 +15,9 @@ public class ServerObject {
 	private Object obj;
 	private List<Client_itf> readers;
 	private Client_itf writer;
-	private ServerObjectLock lock;
+	private ServerObjectState state;
+
+	private final Lock mutex = new ReentrantLock();
 
 	public ServerObject(int id, Object obj) {
 
@@ -21,57 +25,70 @@ public class ServerObject {
 		this.obj = obj;
 		this.readers = new ArrayList<Client_itf>();
 		this.writer = null;
-		this.lock = ServerObjectLock.NL;
+		this.state = ServerObjectState.NL;
 	}
 
-	public Object lock_read(Client_itf client) {
+	public Object lock_read(Client_itf client) throws RemoteException {
 
-		if (this.writer != null)
+		mutex.lock();
+
+		if (this.state == ServerObjectState.WLT && this.writer != null)
 		{
-			try
-			{
-				this.writer.reduce_lock(this.id);
-			}
-			catch (RemoteException e)
-			{
-				e.printStackTrace();
-			}
+			this.writer.reduce_lock(this.id);
 		}
 
 		this.readers.add(client);
 
+		// State update
+		switch (this.state) {
+		case NL:
+			this.state = ServerObjectState.RLT;
+			break;
+		case RLT:
+			this.state = ServerObjectState.RLT;
+			break;
+		case WLT:
+			this.state = ServerObjectState.RLT;
+			break;
+		}
+
+		mutex.unlock();
+
 		return this.obj;
 	}
 
-	public Object lock_write(Client_itf client) {
+	public Object lock_write(Client_itf client) throws RemoteException {
 
-		if(!this.readers.isEmpty())
+		mutex.lock();
+
+		if (this.state == ServerObjectState.RLT && !this.readers.isEmpty())
 		{
-			for(Client_itf cli : this.readers)
+			for (Client_itf cli : this.readers)
 			{
-				try
-				{
-					cli.invalidate_reader(this.id);
-				}
-				catch (RemoteException e)
-				{
-					e.printStackTrace();
-				}
+				cli.invalidate_reader(this.id);
 			}
 		}
-		else if(this.writer != null)
+		else if (this.state == ServerObjectState.WLT && this.writer != null)
 		{
-			try
-			{
-				this.writer.invalidate_writer(this.id);
-			}
-			catch (RemoteException e)
-			{
-				e.printStackTrace();
-			}
+			this.writer.invalidate_writer(this.id);
 		}
-		
+
 		this.writer = client;
+
+		// State update
+		switch (this.state) {
+		case NL:
+			this.state = ServerObjectState.WLT;
+			break;
+		case RLT:
+			this.state = ServerObjectState.WLT;
+			break;
+		case WLT:
+			this.state = ServerObjectState.WLT;
+			break;
+		}
+
+		mutex.unlock();
 
 		return this.obj;
 	}
