@@ -80,10 +80,24 @@ public class SharedObject implements Serializable, SharedObject_itf {
 			this.state = SharedObjectState.WLC;
 			break;
 		}
+
+		notifyAll();
 	}
 
 	// callback invoked remotely by the server
 	public synchronized Object reduce_lock() {
+
+		if (this.state == SharedObjectState.WLT)
+		{
+			try
+			{
+				wait();
+			}
+			catch (InterruptedException e)
+			{
+				e.printStackTrace();
+			}
+		}
 
 		switch (this.state) {
 		case WLC:
@@ -103,6 +117,18 @@ public class SharedObject implements Serializable, SharedObject_itf {
 	// callback invoked remotely by the server
 	public synchronized void invalidate_reader() {
 
+		if (this.state == SharedObjectState.RLT)
+		{
+			try
+			{
+				wait();
+			}
+			catch (InterruptedException e)
+			{
+				e.printStackTrace();
+			}
+		}
+
 		switch (this.state) {
 		case RLT:
 			this.state = SharedObjectState.NL;
@@ -114,6 +140,18 @@ public class SharedObject implements Serializable, SharedObject_itf {
 	}
 
 	public synchronized Object invalidate_writer() {
+
+		if (this.state == SharedObjectState.WLT || this.state == SharedObjectState.RLT_WLC)
+		{
+			try
+			{
+				wait();
+			}
+			catch (InterruptedException e)
+			{
+				e.printStackTrace();
+			}
+		}
 
 		switch (this.state) {
 		case WLT:
