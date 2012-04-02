@@ -26,19 +26,21 @@ public class SharedObject implements Serializable, SharedObject_itf {
 			this.obj = Client.lock_read(this.id);
 		}
 
-		// State update
-		switch (this.state) {
-		case NL:
-			this.state = SharedObjectState.RLT;
-			break;
-		case RLT:
-			this.state = SharedObjectState.RLT;
-			break;
-		case WLC:
-			this.state = SharedObjectState.RLT_WLC;
-			break;
+		synchronized (this)
+		{
+			// State update
+			switch (this.state) {
+			case NL:
+				this.state = SharedObjectState.RLT;
+				break;
+			case RLT:
+				this.state = SharedObjectState.RLT;
+				break;
+			case WLC:
+				this.state = SharedObjectState.RLT_WLC;
+				break;
+			}
 		}
-
 	}
 
 	// invoked by the user program on the client node
@@ -49,19 +51,21 @@ public class SharedObject implements Serializable, SharedObject_itf {
 			this.obj = Client.lock_write(this.id);
 		}
 
-		// State update
-		switch (this.state) {
-		case NL:
-			this.state = SharedObjectState.RLT;
-			break;
-		case RLC:
-			this.state = SharedObjectState.RLT;
-			break;
-		case WLC:
-			this.state = SharedObjectState.RLT;
-			break;
+		synchronized (this)
+		{
+			// State update
+			switch (this.state) {
+			case NL:
+				this.state = SharedObjectState.RLT;
+				break;
+			case RLC:
+				this.state = SharedObjectState.RLT;
+				break;
+			case WLC:
+				this.state = SharedObjectState.RLT;
+				break;
+			}
 		}
-
 	}
 
 	// invoked by the user program on the client node
