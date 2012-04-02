@@ -13,10 +13,8 @@ public class SharedObject implements Serializable, SharedObject_itf {
 	private int id;
 	private SharedObjectState state;
 
-	public SharedObject(int id, Object obj) {
+	public SharedObject() {
 
-		this.id = id;
-		this.obj = obj;
 		this.state = SharedObjectState.NL;
 	}
 
@@ -172,5 +170,11 @@ public class SharedObject implements Serializable, SharedObject_itf {
 	public int getId() {
 
 		return this.id;
+	}
+
+	// Set the object id
+	public void setId(int id) {
+
+		this.id = id;
 	}
 }

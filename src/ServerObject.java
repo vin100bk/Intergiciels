@@ -28,7 +28,7 @@ public class ServerObject {
 
 		if (this.state == ServerObjectState.WL && this.writer != null)
 		{
-			this.writer.reduce_lock(this.id);
+			this.obj = this.writer.reduce_lock(this.id);
 		}
 
 		this.readers.add(client);
@@ -60,7 +60,7 @@ public class ServerObject {
 		}
 		else if (this.state == ServerObjectState.WL && this.writer != null)
 		{
-			this.writer.invalidate_writer(this.id);
+			this.obj = this.writer.invalidate_writer(this.id);
 		}
 
 		this.writer = client;

@@ -2,7 +2,6 @@ import java.rmi.*;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
-import java.net.*;
 
 public class Client extends UnicastRemoteObject implements Client_itf {
 
@@ -30,15 +29,7 @@ public class Client extends UnicastRemoteObject implements Client_itf {
 			objs = new HashMap<Integer, SharedObject>();
 			client = new Client();
 		}
-		catch (MalformedURLException e)
-		{
-			e.printStackTrace();
-		}
-		catch (RemoteException e)
-		{
-			e.printStackTrace();
-		}
-		catch (NotBoundException e)
+		catch (Exception e)
 		{
 			e.printStackTrace();
 		}
@@ -51,7 +42,20 @@ public class Client extends UnicastRemoteObject implements Client_itf {
 
 		try
 		{
-			ret = objs.get(server.lookup(name));
+			int objId = server.lookup(name);
+			
+			// objId == 0 : object does not exist in server
+			if(objId != 0)
+			{
+				ret = objs.get(objId);
+				
+				if(ret == null)
+				{
+					ret = new SharedObject();
+					ret.setId(objId);
+					objs.put(objId, ret);
+				}
+			}
 		}
 		catch (RemoteException e)
 		{
@@ -62,11 +66,11 @@ public class Client extends UnicastRemoteObject implements Client_itf {
 	}
 
 	// binding in the name server
-	public static void register(String name, SharedObject so) {
+	public static void register(String name, SharedObject_itf so) {
 
 		try
 		{
-			server.register(name, so.getId());
+			server.register(name, ((SharedObject) so).getId());
 		}
 		catch (RemoteException e)
 		{
@@ -82,7 +86,9 @@ public class Client extends UnicastRemoteObject implements Client_itf {
 		try
 		{
 			int objId = server.create(o);
-			ret = new SharedObject(objId, o);
+			ret = new SharedObject();
+			ret.obj = o;
+			ret.setId(objId);
 			objs.put(objId, ret);
 		}
 		catch (RemoteException e)
