@@ -1,6 +1,8 @@
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 enum ServerObjectState
 {
@@ -9,6 +11,8 @@ enum ServerObjectState
 
 public class ServerObject {
 
+	private Logger log = Logger.getLogger("server");
+	
 	private int id;
 	private Object obj;
 	private List<Client_itf> readers;
@@ -45,6 +49,8 @@ public class ServerObject {
 			this.state = ServerObjectState.RL;
 			break;
 		}
+		
+		log.log(Level.INFO, "New state : " + this.state);
 
 		return this.obj;
 	}
@@ -77,7 +83,30 @@ public class ServerObject {
 			this.state = ServerObjectState.WL;
 			break;
 		}
+		
+		log.log(Level.INFO, "New state : " + this.state);
 
+		return this.obj;
+	}
+	
+	// Methods for tests
+	public ServerObjectState getState() {
+		
+		return this.state;
+	}
+	
+	public List<Client_itf> getReaders() {
+		
+		return this.readers;
+	}
+	
+	public Client_itf getWriter() {
+		
+		return this.writer;
+	}
+	
+	public Object getObj() {
+		
 		return this.obj;
 	}
 

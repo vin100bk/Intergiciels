@@ -1,4 +1,7 @@
 import java.io.*;
+import java.rmi.RemoteException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 enum SharedObjectState
 {
@@ -8,14 +11,24 @@ enum SharedObjectState
 public class SharedObject implements Serializable, SharedObject_itf {
 
 	private static final long serialVersionUID = 1L;
-
+	private Logger log = Logger.getLogger("client");
+	
 	public Object obj;
 	private int id;
 	private SharedObjectState state;
+	private Client cli;	// Allows to stub Client in tests
 
 	public SharedObject() {
 
 		this.state = SharedObjectState.NL;
+		try
+		{
+			this.cli = new Client();
+		}
+		catch (RemoteException e)
+		{
+			e.printStackTrace();
+		}
 	}
 
 	// invoked by the user program on the client node
@@ -23,7 +36,7 @@ public class SharedObject implements Serializable, SharedObject_itf {
 
 		if (this.state == SharedObjectState.NL)
 		{
-			this.obj = Client.lock_read(this.id);
+			this.obj = cli.lock_read(this.id);
 		}
 
 		synchronized (this)
@@ -41,6 +54,8 @@ public class SharedObject implements Serializable, SharedObject_itf {
 				break;
 			}
 		}
+		
+		log.log(Level.INFO, "New state : " + this.state);
 	}
 
 	// invoked by the user program on the client node
@@ -48,7 +63,7 @@ public class SharedObject implements Serializable, SharedObject_itf {
 
 		if (this.state == SharedObjectState.NL || this.state == SharedObjectState.RLC)
 		{
-			this.obj = Client.lock_write(this.id);
+			this.obj = cli.lock_write(this.id);
 		}
 
 		synchronized (this)
@@ -56,16 +71,18 @@ public class SharedObject implements Serializable, SharedObject_itf {
 			// State update
 			switch (this.state) {
 			case NL:
-				this.state = SharedObjectState.RLT;
+				this.state = SharedObjectState.WLT;
 				break;
 			case RLC:
-				this.state = SharedObjectState.RLT;
+				this.state = SharedObjectState.WLT;
 				break;
 			case WLC:
-				this.state = SharedObjectState.RLT;
+				this.state = SharedObjectState.WLT;
 				break;
 			}
 		}
+		
+		log.log(Level.INFO, "New state : " + this.state);
 	}
 
 	// invoked by the user program on the client node
@@ -82,15 +99,19 @@ public class SharedObject implements Serializable, SharedObject_itf {
 			this.state = SharedObjectState.WLC;
 			break;
 		}
+		
+		log.log(Level.INFO, "New state : " + this.state);
 
 		notifyAll();
 	}
 
 	// callback invoked remotely by the server
 	public synchronized Object reduce_lock() {
-
+		
 		if (this.state == SharedObjectState.WLT)
 		{
+			log.log(Level.INFO, "wait");
+			
 			try
 			{
 				wait();
@@ -112,15 +133,19 @@ public class SharedObject implements Serializable, SharedObject_itf {
 			this.state = SharedObjectState.RLT;
 			break;
 		}
+		
+		log.log(Level.INFO, "New state : " + this.state);
 
 		return this.obj;
 	}
 
 	// callback invoked remotely by the server
 	public synchronized void invalidate_reader() {
-
+		
 		if (this.state == SharedObjectState.RLT)
 		{
+			log.log(Level.INFO, "wait");
+			
 			try
 			{
 				wait();
@@ -139,12 +164,16 @@ public class SharedObject implements Serializable, SharedObject_itf {
 			this.state = SharedObjectState.NL;
 			break;
 		}
+		
+		log.log(Level.INFO, "New state : " + this.state);
 	}
 
 	public synchronized Object invalidate_writer() {
-
+		
 		if (this.state == SharedObjectState.WLT || this.state == SharedObjectState.RLT_WLC)
 		{
+			log.log(Level.INFO, "wait");
+			
 			try
 			{
 				wait();
@@ -166,6 +195,8 @@ public class SharedObject implements Serializable, SharedObject_itf {
 			this.state = SharedObjectState.NL;
 			break;
 		}
+		
+		log.log(Level.INFO, "New state : " + this.state);
 
 		return this.obj;
 	}
@@ -180,5 +211,16 @@ public class SharedObject implements Serializable, SharedObject_itf {
 	public void setId(int id) {
 
 		this.id = id;
+	}
+	
+	//Methods for tests
+	public void setClient(Client client) {
+		
+		this.cli = client;
+	}
+	
+	public SharedObjectState getState() {
+		
+		return this.state;
 	}
 }

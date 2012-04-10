@@ -70,5 +70,21 @@ public class Server extends UnicastRemoteObject implements Server_itf, Serializa
 
 		return this.objs.get(new Integer(id)).lock_write(client);
 	}
+	
+	// Methods for tests
+	public Map<Integer, ServerObject> getObjs() {
+		
+		return this.objs;
+	}
+	
+	public void setObjs(Map<Integer, ServerObject> o) {
+		
+		this.objs = o;
+	}
+	
+	public Map<String, Integer> getObjsNames() {
+		
+		return this.objsNames;
+	}
 
 }

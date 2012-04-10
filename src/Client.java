@@ -6,9 +6,9 @@ import java.util.Map;
 public class Client extends UnicastRemoteObject implements Client_itf {
 
 	private static final long serialVersionUID = 1L;
-	
+
 	private static Server_itf server;
-	private static Map<Integer, SharedObject> objs;
+	private static Map<Integer, SharedObject> objs = new HashMap<Integer, SharedObject>();
 	private static Client client;
 
 	public Client() throws RemoteException {
@@ -26,7 +26,6 @@ public class Client extends UnicastRemoteObject implements Client_itf {
 		try
 		{
 			server = (Server_itf) Naming.lookup("rmi://localhost:3535/ReplicateServer");
-			objs = new HashMap<Integer, SharedObject>();
 			client = new Client();
 		}
 		catch (Exception e)
@@ -43,13 +42,13 @@ public class Client extends UnicastRemoteObject implements Client_itf {
 		try
 		{
 			int objId = server.lookup(name);
-			
+
 			// objId == 0 : object does not exist in server
-			if(objId != 0)
+			if (objId != 0)
 			{
 				ret = objs.get(objId);
-				
-				if(ret == null)
+
+				if (ret == null)
 				{
 					ret = new SharedObject();
 					ret.setId(objId);
@@ -107,7 +106,7 @@ public class Client extends UnicastRemoteObject implements Client_itf {
 	public static Object lock_read(int id) {
 
 		Object ret = null;
-		
+
 		try
 		{
 			ret = server.lock_read(id, client);
@@ -116,7 +115,7 @@ public class Client extends UnicastRemoteObject implements Client_itf {
 		{
 			e.printStackTrace();
 		}
-		
+
 		return ret;
 	}
 
@@ -124,7 +123,7 @@ public class Client extends UnicastRemoteObject implements Client_itf {
 	public static Object lock_write(int id) {
 
 		Object ret = null;
-		
+
 		try
 		{
 			ret = server.lock_write(id, client);
@@ -133,7 +132,7 @@ public class Client extends UnicastRemoteObject implements Client_itf {
 		{
 			e.printStackTrace();
 		}
-		
+
 		return ret;
 	}
 
@@ -151,7 +150,18 @@ public class Client extends UnicastRemoteObject implements Client_itf {
 
 	// receive a writer invalidation request from the server
 	public Object invalidate_writer(int id) throws java.rmi.RemoteException {
-		
+
 		return objs.get(id).invalidate_writer();
+	}
+
+	// Methods for tests
+	public static void setServer(Server_itf s) {
+
+		server = s;
+	}
+
+	public static void setObjs(Map<Integer, SharedObject> o) {
+
+		objs = o;
 	}
 }
